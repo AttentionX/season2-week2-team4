@@ -73,7 +73,7 @@ $accum
 Let's think step-by-step. Decide based on previous status and choice history. Take account of Items and Status panel for making next-step choices.
 Reply with your next command to the browser:
 "CLICK X" - Click on a given element. X is integer to select an element.
-The format of the browser content is highly simplified; all formatting elements are stripped. Based on your given objective, issue whatever command you believe will get you closest to achieving your goal. Don't try to interact with elements that you can't see.
+The format of the browser content is highly simplified; all formatting elements are stripped. Based on your given objective, issue whatever command you believe will get you closest to achieving your goal. Don't try to interact with elements that you can't see. Click on Ok element if available.
 
 [CURRENT STATES AND OPTIONS]
 BROWSER CONTENT: $browser_content
@@ -563,9 +563,9 @@ if (
                 current_choice = clean_html(list_roi_text[int(gpt_cmd[-1])])
             
             # overwrite runtime variable for choice
-            memory_status = nested_list_status[-3:][::-1]
-            memory_choices = nested_list_choices[-3:][::-1]
-            memory_commands = nested_list_command[-3:][::-1]
+            memory_status = nested_list_status[-4:][::-1]
+            memory_choices = nested_list_choices[-4:][::-1]
+            memory_commands = nested_list_command[-4:][::-1]
 
             accum = []
             for idx, temp_memory_status in enumerate(memory_status):
