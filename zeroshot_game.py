@@ -48,46 +48,35 @@ if len(argv) >= 2:
 # 프롬프트에 추가한 명령에 대한 설명을 추가해주세요. 
 prompt_template = """
 You are an agent controlling a browser. You are given:
+(1) Objectives that you are trying to achieve
+(2) A simplified text description of what's visible in the browser window (more on that below)
 
-    (1) objectives that you are trying to achieve
-    (2) the URL of your current web page
-    (3) a simplified text description of what's visible in the browser window (more on that below)
-
-You can issue this command:
-    CLICK X - click on a given element. You can only click on links, buttons, and inputs! X is in form of integer and wrapped with link.
-The format of the browser content is highly simplified; all formatting elements are stripped. Based on your given objective, issue whatever command you believe will get you closest to achieving your goal. Don't try to interact with elements that you can't see. Do not navigate to other website. If you have only on choice, click it right away. Whenever you see a modal, press the OK button.
-
-Now, You are Ph.D GPT.
-
-### Goal
-Your Goal is to succesfully graduate with three requirements. 
+You are Researcher GPT.
+Goal is to succesfully graduate Ph.D with three requirements. 
 - Passing qualification Exam. All PhD students must pass the qualifying exam in December.
-- Writing three journal/conference papers. You are required to publish at least 3 journal papers to qualify your degree.
-- Remain hope ranging from 1 ~ 100
-
-### How to
-- Simply make your choice at the beginning of each month. All outcomes are determined by the random number generator. Do not take them seriously. Sometimes the RNG can be brutal.
-- Take account of "Items:" and "Status" panel for making next-step choices. HTML components wraps around [ITEMS] and [STATUS] below:
-    - <div id="items_window" class="panel">
-        <h3>Items:</h3><ul>[ITEMS]</ul></div>
-    - <div id="status_window" class="panel">
-        <h3>Status:</h3><ul>[STATUS]</ul></div>
+- Writing, Submitting, Publishing three journal papers. You are required to publish at least 3 journal papers to qualify your degree.
+- Retain hope between 1 ~ 100. If hope is gone, then game over.
+- Development Process: Idea -> Preliminary Result -> Major Result -> Add Three Figures -> Draft Paper -> Publish Journal
+    - Idea: A simple idea to be developed to a preliminary result.
+    - Preliminary Result: Some preliminary findings. Can be potentially developed into a major result.
+    - Major Result: Some major findings. With three figures, you can draft a new paper.
+    - Figures: A nice looking figure summarizing your hard work conducting various experiments. With three figures and a major result, you can draft a paper.
+    - Submitted Paper: A submitted journal paper, waiting for the judgement from the reviewers.
+    - Rejected Paper: A rejected, waiting to be rewritten and resubmitted.
+    - Paper: A published journal paper!
+    - Call for Papers: You can submit a conference paper once you have a major result.
 - Click available options given at the each turn to play the game.
-    - <div class="choices_container"><a class="btn" href="javascript: void(0)">[CHOICES]</a></div>
-    - Whenever you see a modal, press the OK button.
-- Let's think step-by-step. Decide based on previous choices history and outputs.
 
-The current browser content, objective, and current URL follow. Reply with your next command to the browser.
+[PREVIOUS STATES AND CHOICES]
+$accum
 
-CURRENT BROWSER CONTENT:
-------------------
-$browser_content
-------------------
+Let's think step-by-step. Decide based on previous status and choice history. Take account of Items and Status panel for making next-step choices.
+Reply with your next command to the browser:
+"CLICK X" - Click on a given element. X is integer to select an element.
+The format of the browser content is highly simplified; all formatting elements are stripped. Based on your given objective, issue whatever command you believe will get you closest to achieving your goal. Don't try to interact with elements that you can't see.
 
-OBJECTIVE: $objective
-PREVIOUS STATUS: $previous_status
-PREVIOUS OPTIONS: $previous_options
-PREVIOUS COMMAND: $previous_command
+[CURRENT STATES AND OPTIONS]
+BROWSER CONTENT: $browser_content
 CURRENT STATUS: $current_status
 AVAILABLE CHOICES: $available_choices
 YOUR COMMAND:
@@ -482,16 +471,18 @@ if (
             "(h) to view commands again\n(r/enter) to run suggested command\n(o) change objective"
         )
 
-    def get_gpt_command(objective, previous_status, previous_choice, previous_command, browser_content, current_status, available_choices):
+    def get_gpt_command(objective, accum, browser_content, current_status, available_choices):
         prompt = prompt_template
         prompt = prompt.replace("$objective", objective)
-        prompt = prompt.replace("$previous_status", previous_status)
-        prompt = prompt.replace("$previous_choice", previous_choice)
-        prompt = prompt.replace("$previous_command", previous_command)
+        prompt = prompt.replace("$accum", accum)
         prompt = prompt.replace("$browser_content", browser_content[:4500])
         prompt = prompt.replace("$current_status", current_status)
         prompt = prompt.replace("$available_choices", available_choices)
         response = openai_api.chatgpt(prompt)
+        # breakpoint()
+        print("\n----------------\n")
+        print(prompt)
+        print("\n----------------\n")
         print(response)
         return response
     
@@ -508,24 +499,29 @@ if (
             _crawler.click(id)
         else:
             pass
-        time.sleep(1)
+        time.sleep(2)
 
-    objective = """Your Goal is to succesfully graduate with three requirements. 
-    - Passing qualification Exam
-    - Writing three journal/conference papers
-    - Remain hope ranging from 1 ~ 100
+    objective = """Your Goal is to succesfully graduate Ph.D with three requirements. 
+    (1) Passing qualification Exam. All PhD students must pass the qualifying exam in December.
+    (2) Writing, Submitting, Publishing three journal papers. You are required to publish at least 3 journal papers to qualify your degree.
+    (3) Retain hope between 1 ~ 100. If hope is gone, then game over.
     """
-    print("\nWelcome to natbot! What is your objective?")
+    print("\nWelcome to Ph.D Simulator! What is your objective?")
     i = input()
     if len(i) > 0:
         objective = i
 
+    nested_list_status = []
+    nested_list_choices = []
+    nested_list_command = []
+    
     gpt_cmd = "" # current command
-    prev_cmd = ""
+    previous_command = ""
     current_status = ""
     previous_status = ""
     current_choice = ""
     previous_choice = ""
+
     _crawler.go_to_page(f"https://research.wmz.ninja/projects/phd/index.html")
     try:
         while True:
@@ -533,9 +529,12 @@ if (
             browser_content = "\n".join(list_roi_text)
 
             # load previous runtime variables
-            prev_cmd = gpt_cmd
+            previous_command = gpt_cmd
             previous_status = current_status
             previous_choice = current_choice
+            nested_list_status.append(previous_status)
+            nested_list_choices.append(previous_choice)
+            nested_list_command.append(previous_command)
 
             # overwrite runtime variable for status
             list_status = []
@@ -551,18 +550,39 @@ if (
 
             # overwrite runtime variable for current_choice
             if gpt_cmd != "":
+                current_status = clean_html(current_status)
+                available_choices = clean_html(available_choices)
                 current_choice = clean_html(list_roi_text[int(gpt_cmd[-1])])
             
             # overwrite runtime variable for choice
-            gpt_cmd = get_gpt_command(objective, previous_status, previous_choice, prev_cmd, browser_content, current_status, available_choices)
+            memory_status = nested_list_status[-3:][::-1]
+            memory_choices = nested_list_choices[-3:][::-1]
+            memory_commands = nested_list_command[-3:][::-1]
+
+            accum = []
+            for idx, temp_memory_status in enumerate(memory_status):
+                temp_status = "".join(temp_memory_status)
+                temp_choice = memory_choices[idx]
+                temp_command = memory_commands[idx]
+                
+                accum_text = f"""\n{idx+1} TURNS BEFORE STATUS: $temp_status\n{idx+1} TURNS BEFORE CHOICE: $temp_choice\n{idx+1} TURNS BEFORE COMMAND: $temp_command\n"""
+                accum_text = accum_text.replace("$temp_status", temp_status)
+                accum_text = accum_text.replace("$temp_choice", temp_choice)
+                accum_text = accum_text.replace("$temp_command", temp_command)
+                accum.append(accum_text)
+            
+            accum = accum[::-1]
+            accum = "".join(accum)
+
+            gpt_cmd = get_gpt_command(objective, accum, browser_content, current_status, available_choices)
             gpt_cmd = gpt_cmd.strip()
 
             if not quiet:
-                print("Objective: " + objective)
-                print("----------------\n" + browser_content + "\n----------------\n")
+                # print("Objective: " + objective)
+                # print("----------------\n" + browser_content + "\n----------------\n")
+                pass
             if len(gpt_cmd) > 0:
                 print("Suggested command: " + gpt_cmd)
-
 
             command = input()
             if command == "r" or command == "":

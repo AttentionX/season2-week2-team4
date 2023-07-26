@@ -9,7 +9,7 @@ load_dotenv()
 openai.api_key = os.environ.get('OPENAI_KEY')
 
 model = "gpt-3.5-turbo"
-system_message = "You are a helpful assistant"
+system_message = "You are Simulator GPT for games"
 query = "Explain self-attention"
 
 class OpenAI_API:
