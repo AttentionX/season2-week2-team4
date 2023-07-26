@@ -525,7 +525,14 @@ if (
     _crawler.go_to_page(f"https://research.wmz.ninja/projects/phd/index.html")
     try:
         while True:
+            # get text items
             list_roi_text = _crawler.crawl() 
+            
+            # exception
+            if len(list_roi_text) == 0:
+                time.sleep(2)
+                continue
+            
             browser_content = "\n".join(list_roi_text)
 
             # load previous runtime variables
@@ -539,6 +546,7 @@ if (
             # overwrite runtime variable for status
             list_status = []
             list_choices = []
+            # breakpoint()
             for roi_idx, roi_text in enumerate(list_roi_text):
                 if 'link' in roi_text:
                     list_choices.append(roi_text)
